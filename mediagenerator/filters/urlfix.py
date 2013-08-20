@@ -127,9 +127,8 @@ class UrlRerwiter(object):
             mime = guess_type(path)[0] or 'application/octet-stream'
             return 'data:%s;base64,%s' % (mime, data)
     elif getattr(settings, 'GENERATE_DATA_URIS', False) and self.name.endswith('.scss') and False:
-        if os.path.getsize(path) <= MAX_DATA_URI_FILE_SIZE and \
-                not IGNORE_PATTERN.match(rebased):
-                return 'inline-image("%s")' % (url)
+        if os.path.getsize(path) <= MAX_DATA_URI_FILE_SIZE and not IGNORE_PATTERN.match(rebased):
+	    return 'inline-image("%s")' % (url)
 
 
 
