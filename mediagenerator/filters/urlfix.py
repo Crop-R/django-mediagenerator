@@ -70,8 +70,9 @@ class UrlRerwiter(object):
 
     def _rewrite_css(self, match):
         url = match.group('url')
-        if url.startswith("//") or url.startswith('data:image') or url.startswith("about:") or '$' in url:
-            return "url(%s)" % url
+        for prefix in ["//", "http://", "https://", "ftp://", "data:image", "about:"]:
+            if url.startswith(prefix) or '$' in url:
+                return "url(%s)" % url
 
     #elif url.endswith('.png'):
     #    return "%s" % self._rebase(url)

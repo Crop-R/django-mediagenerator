@@ -1,5 +1,6 @@
-import os.path
+import os
 import re
+import hashlib
 import glob2
 import hashlib
 import cPickle
@@ -7,7 +8,8 @@ import cPickle
 
 
 from .settings import (MEDIA_RELATIVE_RESOLVE, MEDIA_CSS_LOCATION,
-    MEDIA_JS_LOCATION, MEDIA_CSS_EXT, MEDIA_JS_EXT, MEDIA_CACHE_DIR )
+    MEDIA_JS_LOCATION, MEDIA_CSS_EXT, MEDIA_JS_EXT, MEDIA_CACHE_DIR, MEDIA_BLOCK_SIZE )
+from ...settings import  MEDIA_DEV_MODE
 
 from django.conf import settings
 
@@ -16,16 +18,27 @@ from mediagenerator.utils import find_file, get_media_dirs, atomic_store
 from mediagenerator.templatetags.media import MetaNode
 from django import template
 
+
 class CommentResolver(object):
     resolve_re = re.compile(r"@require (?P<d>['\"])(.*?)(?P=d)", re.M|re.U)
     _cache = {}
+
     def __init__(self, lang):
         self.lang = lang
         self.comment_start = False
         self.result = []
 
+    def parse_requirements(self, content, fname):
+        # for testing purposes
+        if MEDIA_RELATIVE_RESOLVE:
+            result = []
+            for r in self._resolve(content):
+                result += _find_files(os.path.split(fname)[0], r)
+        else:
+            result = self._resolve(content)
+        return result
+
     def resolve(self, fname):
-        fname = find_file(fname)
         if fname in self._cache:
             result, time = self._cache[fname]
             mtime = os.path.getmtime(fname)
@@ -34,14 +47,8 @@ class CommentResolver(object):
 
         with open(fname) as sf:
             content = sf.read()
-         
-        # for testing purposes
-        if MEDIA_RELATIVE_RESOLVE:
-            result = []
-            for r in self._resolve(content):
-                result += _find_files(os.path.split(fname)[0], r)
-        else:
-            result = self._resolve(content)
+
+        result = self.parse_requirements(content, fname)
 
         time = os.path.getmtime(fname)
         self._cache[fname] = result, time
@@ -53,6 +60,7 @@ class CommentResolver(object):
 
 class MediaBlock(object):
     re_js_req = re.compile('//@require (.*)', re.UNICODE)
+    _cache = {}
     def __init__(self, block, uniques):
         self.bundle_entries = [re.sub('\.html', "", b) for b in block]
         self.uniques = uniques
@@ -77,6 +85,8 @@ class MediaBlock(object):
                     
             if len(bundle) == 1: continue
             res.append(bundle)
+
+        res = self.reduce_bundle_size(res)
 
         # make ie bundles here
         ie_res = []
@@ -103,6 +113,23 @@ class MediaBlock(object):
                 ie_res.append(ie_bundle)
 
         return ie_res
+
+    def reduce_bundle_size(self, bundles):
+        res = []
+        for bundle in bundles:
+            if len(bundle) < MEDIA_BLOCK_SIZE:
+                res.append(bundle)
+                continue
+
+            bundle_name, bundle_ext = os.path.splitext(bundle.pop(0))
+            num_parts = len(bundle) / MEDIA_BLOCK_SIZE + 1
+            part_size = len(bundle) / num_parts + 1
+            for current_part in range(num_parts):
+                bundle_part_name = '{0}.part{1}{2}'.format(bundle_name, current_part, bundle_ext)
+                bundle_part = [bundle_part_name] + bundle[current_part*part_size:(current_part+1)*part_size]
+                res.append(bundle_part)
+        return res
+
 
 
     def _find_js(self, name):
@@ -143,6 +170,11 @@ class MediaBlock(object):
 
 
     def _find_deps(self, name, lang):
+
+        if not MEDIA_DEV_MODE:
+            if name in self._cache:
+                return self._cache[name]
+
         resolver = CommentResolver(lang)
         deps = []
         for dep in resolver.resolve(name):
@@ -153,6 +185,8 @@ class MediaBlock(object):
             deps += self._find_deps(dep_file, lang)
             deps.append(dep)
 
+        if not MEDIA_DEV_MODE:
+            self._cache[name] = deps
         return deps
 
 class TmplFileCache(object):
