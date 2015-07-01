@@ -70,7 +70,6 @@ class MediaMiddleware(object):
                           % filename)
 
         content, mimetype = backend.get_dev_output(filename)
-        print "MIME", mimetype, filename
         if not mimetype:
             if filename.endswith('.woff'):
                 mimetype = 'application/x-font-woff'
