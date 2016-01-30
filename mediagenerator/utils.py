@@ -52,7 +52,7 @@ def _load_generators():
 def _refresh_dev_names():
     try:
         _refresh_lock.acquire()
-        if len(_generated_names) and getattr(settings, 'MEDIA_REFRESH_ONCE'):
+        if len(_generated_names) and getattr(settings, 'MEDIA_REFRESH_ONCE', False):
             return  # allow significant performance speedup
         names = {}
         mapping = {}
