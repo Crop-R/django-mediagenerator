@@ -300,7 +300,7 @@ def atomic_store(path, content):
 
 
 try:
-    _persistent_cache = cache('mediagenerator')
+    _persistent_cache = cache
 
     def cache_get(key):
         return _persistent_cache.get(key)
