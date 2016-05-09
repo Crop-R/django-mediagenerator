@@ -5,7 +5,7 @@ from .settings import (GLOBAL_MEDIA_DIRS, PRODUCTION_MEDIA_URL,
 
 
 from django.conf import settings
-from django.core.cache import get_cache, InvalidCacheBackendError
+from django.core.cache import cache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.template import loader
 from django.utils.importlib import import_module
@@ -300,7 +300,7 @@ def atomic_store(path, content):
 
 
 try:
-    _persistent_cache = get_cache('mediagenerator')
+    _persistent_cache = cache('mediagenerator')
 
     def cache_get(key):
         return _persistent_cache.get(key)
