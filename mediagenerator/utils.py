@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.cache import cache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.template import loader
-from django.utils.importlib import import_module
+from importlib import import_module
 from django.utils.http import urlquote
 import os
 import re
