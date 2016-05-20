@@ -7,7 +7,7 @@ from subprocess import check_call
 import hashlib
 
 from django.core.management.base import NoArgsCommand
-from django.utils.importlib import import_module
+from importlib import import_module
 
 from ... import settings
 from ...api import generate_media, prepare_media
